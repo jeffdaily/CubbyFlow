@@ -54,6 +54,7 @@ Every simulator has both 2-D and 3-D implementations.
 - A bootstrapped [vcpkg](https://github.com/microsoft/vcpkg) checkout
 - Python when building `pyCubbyFlow`
 - A CUDA toolkit only when building the optional CUDA backend
+- A ROCm installation only when building that backend for AMD GPUs instead
 
 Set `VCPKG_ROOT` to your vcpkg checkout. CubbyFlow's manifest installs the required libraries during CMake configuration.
 

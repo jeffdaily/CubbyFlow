@@ -85,9 +85,10 @@ if (USE_HIP)
     set(CMAKE_HIP_FLAGS
         "${CMAKE_HIP_FLAGS} -include \"${CUBBYFLOW_CUDA_TO_HIP_HEADER}\"")
     add_compile_definitions(CUBBYFLOW_USE_CUDA)
-    # The shim defines __CUDACC__ to keep the project's kernel/device guards
-    # visible, but that flips rocThrust's auto-detect to its CUDA backend (which
-    # then includes a CUDA-only CUB header). Pin Thrust to its HIP backend.
+    # rocThrust picks its backend from compiler detection (__CUDACC__ under
+    # nvcc, the host compiler otherwise), never from this project's macros.
+    # Every Thrust-reaching source here compiles as HIP, so this pin is
+    # defensive: it keeps the backend explicit rather than inferred.
     add_compile_definitions(THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_HIP)
     message(STATUS "Using HIP: arch ${CMAKE_HIP_ARCHITECTURES}")
 endif()

@@ -110,7 +110,7 @@ cmake .. -DUSE_HIP=ON -DCMAKE_HIP_ARCHITECTURES=gfx90a
 make
 ```
 
-`CMAKE_HIP_ARCHITECTURES` accepts a semicolon-separated list of AMD GPU targets (for example `gfx90a` or `gfx1100`); when omitted it defaults to `gfx90a`. A working ROCm installation with HIP is required, and `hipcc` should be on the path so CMake can enable the HIP language.
+`CMAKE_HIP_ARCHITECTURES` accepts a semicolon-separated list of AMD GPU targets (for example `gfx90a` or `gfx1100`); when omitted, CMake detects the GPU installed in the build host. A working ROCm installation with HIP is required, and `hipcc` should be on the path so CMake can enable the HIP language.
 
 ### Running Tests
 
