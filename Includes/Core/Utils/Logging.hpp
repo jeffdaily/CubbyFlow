@@ -57,7 +57,7 @@ class Logger final
 
     //! Writes a value to the buffer stream.
     template <typename T>
-    const Logger& operator<<(const T& x) const
+    Logger& operator<<(const T& x)
     {
         m_buffer << x;
         return *this;
@@ -65,7 +65,7 @@ class Logger final
 
  private:
     LogLevel m_level;
-    mutable std::stringstream m_buffer{};
+    std::stringstream m_buffer{};
 };
 
 //! Helper class for logging.
@@ -99,18 +99,6 @@ class Logging
     //! Un-mutes the logger.
     static void Unmute();
 };
-
-//! Info-level logger.
-extern Logger infoLogger;
-
-//! Warn-level logger.
-extern Logger warnLogger;
-
-//! Error-level logger.
-extern Logger errorLogger;
-
-//! Debug-level logger.
-extern Logger debugLogger;
 
 #define CUBBYFLOW_INFO                                               \
     (Logger(LogLevel::Info)                                          \

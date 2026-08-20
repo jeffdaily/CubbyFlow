@@ -41,7 +41,7 @@ ImplicitTriangleMesh3::ImplicitTriangleMesh3(TriangleMesh3Ptr mesh,
 
     m_customImplicitSurface =
         CustomImplicitSurface3::Builder{}
-            .WithSignedDistanceFunction([&](const Vector3D& pt) -> double {
+            .WithSignedDistanceFunction([this](const Vector3D& pt) -> double {
                 return m_grid->Sample(pt);
             })
             .WithDomain(m_grid->GetBoundingBox())
@@ -128,9 +128,7 @@ ImplicitTriangleMesh3 ImplicitTriangleMesh3::Builder::Build() const
 
 ImplicitTriangleMesh3Ptr ImplicitTriangleMesh3::Builder::MakeShared() const
 {
-    return std::shared_ptr<ImplicitTriangleMesh3>(
-        new ImplicitTriangleMesh3{ m_mesh, m_resolutionX, m_margin, m_transform,
-                                   m_isNormalFlipped },
-        [](ImplicitTriangleMesh3* obj) { delete obj; });
+    return std::make_shared<ImplicitTriangleMesh3>(
+        m_mesh, m_resolutionX, m_margin, m_transform, m_isNormalFlipped);
 }
 }  // namespace CubbyFlow

@@ -87,7 +87,8 @@ void PointParticleEmitter2::OnUpdate(double currentTimeInSeconds,
         newPositions.Append(candidatePositions);
         newVelocities.Append(candidateVelocities);
 
-        particles->AddParticles(newPositions, newVelocities);
+        particles->AddParticles(ConstArrayView1<Vector2D>(newPositions),
+                                ConstArrayView1<Vector2D>(newVelocities));
 
         m_numberOfEmittedParticles += newPositions.Length();
     }
@@ -104,7 +105,8 @@ void PointParticleEmitter2::Emit(Array1<Vector2D>* newPositions,
             Matrix2x2D::MakeRotationMatrix(newAngleInRadian);
 
         newPositions->Append(m_origin);
-        newVelocities->Append(m_speed * (rotationMatrix * m_direction));
+        newVelocities->Append(
+            Vector2D(m_speed * (rotationMatrix * m_direction)));
     }
 }
 
@@ -180,10 +182,8 @@ PointParticleEmitter2 PointParticleEmitter2::Builder::Build() const
 
 PointParticleEmitter2Ptr PointParticleEmitter2::Builder::MakeShared() const
 {
-    return std::shared_ptr<PointParticleEmitter2>(
-        new PointParticleEmitter2(
-            m_origin, m_direction, m_speed, m_spreadAngleInDegrees,
-            m_maxNumberOfNewParticlesPerSecond, m_maxNumberOfParticles, m_seed),
-        [](PointParticleEmitter2* obj) { delete obj; });
+    return std::make_shared<PointParticleEmitter2>(
+        m_origin, m_direction, m_speed, m_spreadAngleInDegrees,
+        m_maxNumberOfNewParticlesPerSecond, m_maxNumberOfParticles, m_seed);
 }
 }  // namespace CubbyFlow

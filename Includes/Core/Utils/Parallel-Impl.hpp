@@ -27,7 +27,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_reduce.h>
 #include <tbb/parallel_sort.h>
-#include <tbb/task.h>
+#include <tbb/task_arena.h>
 #elif defined(CUBBYFLOW_TASKING_CPP11THREAD)
 #include <thread>
 #endif
@@ -36,9 +36,6 @@
 #include <cmath>
 #include <future>
 #include <vector>
-
-#undef max
-#undef min
 
 namespace CubbyFlow
 {
@@ -60,39 +57,30 @@ inline auto Async(TASK&& fn) -> future<operator_return_t<TASK>>
 {
 #if defined(CUBBYFLOW_TASKING_HPX)
     return hpx::async(std::forward<TASK>(fn));
-
 #elif defined(CUBBYFLOW_TASKING_TBB)
-    struct LocalTBBTask : public tbb::task
+    using package_t = std::packaged_task<operator_return_t<TASK>()>;
+    package_t task(std::forward<TASK>(fn));
+    auto result = task.get_future();
+
+    struct LocalTBBTask
     {
-        TASK func;
+        // TBB invokes queued functors through a const call operator.
+        mutable package_t task;
 
-        LocalTBBTask(TASK&& f) : func(std::forward<TASK>(f))
+        void operator()() const
         {
-            // Do nothing
-        }
-
-        tbb::task* execute() override
-        {
-            func();
-            return nullptr;
+            task();
         }
     };
 
-    using package_t = std::packaged_task<operator_return_t<TASK>()>;
+    tbb::task_arena arena{ tbb::task_arena::attach{} };
+    arena.enqueue(LocalTBBTask{ std::move(task) });
 
-    auto task = new package_t(std::forward<TASK>(fn));
-    auto* tbbNode = new (tbb::task::allocate_root()) LocalTBBTask([=]() {
-        (*task)();
-        delete task;
-    });
-
-    tbb::task::enqueue(*tbbNode);
-    return task.get_future();
-
+    return result;
 #elif defined(CUBBYFLOW_TASKING_CPP11THREAD)
-    return std::async(std::launch::async, fn);
+    return std::async(std::launch::async, std::forward<TASK>(fn));
 #else
-    return std::async(std::launch::deferred, fn);
+    return std::async(std::launch::deferred, std::forward<TASK>(fn));
 #endif
 }
 
@@ -142,7 +130,7 @@ void Merge(RandomIterator a, size_t size, RandomIterator2 temp,
     }
 
     // Copy sorted temp array into main array, a
-    ParallelFor(ZERO_SIZE, size, [&](size_t i) { a[i] = temp[i]; });
+    ParallelFor(ZERO_SIZE, size, [&a, &temp](size_t i) { a[i] = temp[i]; });
 }
 
 template <typename RandomIterator, typename RandomIterator2,
@@ -165,13 +153,16 @@ void ParallelMergeSort(RandomIterator a, size_t size, RandomIterator2 temp,
             ParallelMergeSort(begin, k2, temp, numThreads, compareFunction);
         };
 
-        pool.emplace_back(Internal::Async(
-            [=]() { launchRange(a, size / 2, temp, numThreads / 2); }));
+        pool.emplace_back(
+            Internal::Async([launchRange, a, size, temp, numThreads]() {
+                launchRange(a, size / 2, temp, numThreads / 2);
+            }));
 
-        pool.emplace_back(Internal::Async([=]() {
-            launchRange(a + size / 2, size - size / 2, temp + size / 2,
-                        numThreads - numThreads / 2);
-        }));
+        pool.emplace_back(
+            Internal::Async([launchRange, a, size, temp, numThreads]() {
+                launchRange(a + size / 2, size - size / 2, temp + size / 2,
+                            numThreads - numThreads / 2);
+            }));
 
         // Wait for jobs to finish
         for (auto& f : pool)
@@ -236,7 +227,7 @@ void ParallelFor(IndexType beginIndex, IndexType endIndex,
         IndexType n = endIndex - beginIndex + 1;
         IndexType slice = static_cast<IndexType>(
             std::round(n / static_cast<double>(numThreads)));
-        slice = std::max(slice, IndexType(1));
+        slice = (std::max)(slice, IndexType(1));
 
         // [Helper] Inner loop
         auto launchRange = [&function](IndexType k1, IndexType k2) {
@@ -250,13 +241,13 @@ void ParallelFor(IndexType beginIndex, IndexType endIndex,
         std::vector<std::thread> pool;
         pool.reserve(numThreads);
         IndexType i1 = beginIndex;
-        IndexType i2 = std::min(beginIndex + slice, endIndex);
+        IndexType i2 = (std::min)(beginIndex + slice, endIndex);
 
         for (unsigned int i = 0; i + 1 < numThreads && i1 < endIndex; ++i)
         {
             pool.emplace_back(launchRange, i1, i2);
             i1 = i2;
-            i2 = std::min(i2 + slice, endIndex);
+            i2 = (std::min)(i2 + slice, endIndex);
         }
 
         if (i1 < endIndex)
@@ -330,25 +321,26 @@ void ParallelRangeFor(IndexType beginIndex, IndexType endIndex,
         IndexType n = endIndex - beginIndex + 1;
         IndexType slice = static_cast<IndexType>(
             std::round(n / static_cast<double>(numThreads)));
-        slice = std::max(slice, IndexType(1));
+        slice = (std::max)(slice, IndexType(1));
 
         // Create pool and launch jobs
         std::vector<CubbyFlow::Internal::future<void>> pool;
         pool.reserve(numThreads);
         IndexType i1 = beginIndex;
-        IndexType i2 = std::min(beginIndex + slice, endIndex);
+        IndexType i2 = (std::min)(beginIndex + slice, endIndex);
 
         for (unsigned int i = 0; i + 1 < numThreads && i1 < endIndex; ++i)
         {
-            pool.emplace_back(Internal::Async([=]() { function(i1, i2); }));
+            pool.emplace_back(
+                Internal::Async([function, i1, i2]() { function(i1, i2); }));
             i1 = i2;
-            i2 = std::min(i2 + slice, endIndex);
+            i2 = (std::min)(i2 + slice, endIndex);
         }
 
         if (i1 < endIndex)
         {
-            pool.emplace_back(
-                Internal::Async([=]() { function(i1, endIndex); }));
+            pool.emplace_back(Internal::Async(
+                [function, i1, endIndex]() { function(i1, endIndex); }));
         }
 
         // Wait for jobs to finish
@@ -374,7 +366,7 @@ void ParallelFor(IndexType beginIndexX, IndexType endIndexX,
 {
     ParallelFor(
         beginIndexY, endIndexY,
-        [&](IndexType j) {
+        [&beginIndexX, &endIndexX, &function](IndexType j) {
             for (IndexType i = beginIndexX; i < endIndexX; ++i)
             {
                 function(i, j);
@@ -390,7 +382,8 @@ void ParallelRangeFor(IndexType beginIndexX, IndexType endIndexX,
 {
     ParallelRangeFor(
         beginIndexY, endIndexY,
-        [&](IndexType jBegin, IndexType jEnd) {
+        [&function, &beginIndexX, &endIndexX](IndexType jBegin,
+                                              IndexType jEnd) {
             function(beginIndexX, endIndexX, jBegin, jEnd);
         },
         policy);
@@ -404,7 +397,8 @@ void ParallelFor(IndexType beginIndexX, IndexType endIndexX,
 {
     ParallelFor(
         beginIndexZ, endIndexZ,
-        [&](IndexType k) {
+        [&beginIndexY, &endIndexY, &beginIndexX, &endIndexX,
+         &function](IndexType k) {
             for (IndexType j = beginIndexY; j < endIndexY; ++j)
             {
                 for (IndexType i = beginIndexX; i < endIndexX; ++i)
@@ -424,7 +418,8 @@ void ParallelRangeFor(IndexType beginIndexX, IndexType endIndexX,
 {
     ParallelRangeFor(
         beginIndexZ, endIndexZ,
-        [&](IndexType kBegin, IndexType kEnd) {
+        [&function, &beginIndexX, &endIndexX, &beginIndexY, &endIndexY](
+            IndexType kBegin, IndexType kEnd) {
             function(beginIndexX, endIndexX, beginIndexY, endIndexY, kBegin,
                      kEnd);
         },
@@ -462,13 +457,14 @@ Value ParallelReduce(IndexType beginIndex, IndexType endIndex,
         IndexType n = endIndex - beginIndex + 1;
         IndexType slice = static_cast<IndexType>(
             std::round(n / static_cast<double>(numThreads)));
-        slice = std::max(slice, IndexType(1));
+        slice = (std::max)(slice, IndexType(1));
 
         // Results
         std::vector<Value> results(numThreads, identity);
 
         // [Helper] Inner loop
-        auto launchRange = [&](IndexType k1, IndexType k2, unsigned int tid) {
+        auto launchRange = [&results, &function, &identity](
+                               IndexType k1, IndexType k2, unsigned int tid) {
             results[tid] = function(k1, k2, identity);
         };
 
@@ -477,22 +473,26 @@ Value ParallelReduce(IndexType beginIndex, IndexType endIndex,
         pool.reserve(numThreads);
 
         IndexType i1 = beginIndex;
-        IndexType i2 = std::min(beginIndex + slice, endIndex);
+        IndexType i2 = (std::min)(beginIndex + slice, endIndex);
         unsigned int threadID = 0;
 
         for (; threadID + 1 < numThreads && i1 < endIndex; ++threadID)
         {
             pool.emplace_back(
-                Internal::Async([=]() { launchRange(i1, i2, threadID); }));
+                Internal::Async([launchRange, i1, i2, threadID]() {
+                    launchRange(i1, i2, threadID);
+                }));
 
             i1 = i2;
-            i2 = std::min(i2 + slice, endIndex);
+            i2 = (std::min)(i2 + slice, endIndex);
         }
 
         if (i1 < endIndex)
         {
-            pool.emplace_back(Internal::Async(
-                [=]() { launchRange(i1, endIndex, threadID); }));
+            pool.emplace_back(
+                Internal::Async([launchRange, i1, endIndex, threadID]() {
+                    launchRange(i1, endIndex, threadID);
+                }));
         }
 
         // Wait for jobs to finish
@@ -519,7 +519,11 @@ Value ParallelReduce(IndexType beginIndex, IndexType endIndex,
     return function(beginIndex, endIndex, identity);
 }
 
+#ifdef __CUDACC__
 template <typename RandomIterator>
+#else
+template <std::random_access_iterator RandomIterator>
+#endif
 void ParallelSort(RandomIterator begin, RandomIterator end,
                   ExecutionPolicy policy)
 {
@@ -529,7 +533,11 @@ void ParallelSort(RandomIterator begin, RandomIterator end,
         policy);
 }
 
+#ifdef __CUDACC__
 template <typename RandomIterator, typename CompareFunction>
+#else
+template <std::random_access_iterator RandomIterator, typename CompareFunction>
+#endif
 void ParallelSort(RandomIterator begin, RandomIterator end,
                   CompareFunction compareFunction, ExecutionPolicy policy)
 {

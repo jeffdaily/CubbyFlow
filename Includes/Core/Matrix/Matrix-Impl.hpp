@@ -867,10 +867,7 @@ constexpr Matrix<T, 4, 1> Matrix<T, 4, 1>::MakeUnit(size_t i)
 }
 
 template <typename T>
-Matrix<T, MATRIX_SIZE_DYNAMIC, MATRIX_SIZE_DYNAMIC>::Matrix()
-{
-    // Do nothing
-}
+Matrix<T, MATRIX_SIZE_DYNAMIC, MATRIX_SIZE_DYNAMIC>::Matrix() = default;
 
 template <typename T>
 Matrix<T, MATRIX_SIZE_DYNAMIC, MATRIX_SIZE_DYNAMIC>::Matrix(
@@ -953,32 +950,17 @@ Matrix<T, MATRIX_SIZE_DYNAMIC, MATRIX_SIZE_DYNAMIC>::Matrix(size_t rows,
 }
 
 template <typename T>
-Matrix<T, MATRIX_SIZE_DYNAMIC, MATRIX_SIZE_DYNAMIC>::Matrix(const Matrix& other)
-    : m_elements(other.m_elements), m_rows(other.m_rows), m_cols(other.m_cols)
-{
-    // Do nothing
-}
+Matrix<T, MATRIX_SIZE_DYNAMIC, MATRIX_SIZE_DYNAMIC>::Matrix(
+    const Matrix& other) = default;
 
 template <typename T>
 Matrix<T, MATRIX_SIZE_DYNAMIC, MATRIX_SIZE_DYNAMIC>::Matrix(
-    Matrix&& other) noexcept
-    : m_elements(std::move(other.m_elements)),
-      m_rows(other.m_rows),
-      m_cols(other.m_cols)
-{
-    // Do nothing
-}
+    Matrix&& other) noexcept = default;
 
 template <typename T>
 Matrix<T, MATRIX_SIZE_DYNAMIC, MATRIX_SIZE_DYNAMIC>&
 Matrix<T, MATRIX_SIZE_DYNAMIC, MATRIX_SIZE_DYNAMIC>::operator=(
-    const Matrix& other)
-{
-    m_elements = other.m_elements;
-    m_rows = other.m_rows;
-    m_cols = other.m_cols;
-    return *this;
-}
+    const Matrix& other) = default;
 
 template <typename T>
 Matrix<T, MATRIX_SIZE_DYNAMIC, MATRIX_SIZE_DYNAMIC>&
@@ -1132,10 +1114,7 @@ Matrix<T, MATRIX_SIZE_DYNAMIC, MATRIX_SIZE_DYNAMIC>::operator[](size_t i) const
 }
 
 template <typename T>
-Matrix<T, MATRIX_SIZE_DYNAMIC, 1>::Matrix()
-{
-    // Do nothing
-}
+Matrix<T, MATRIX_SIZE_DYNAMIC, 1>::Matrix() = default;
 
 template <typename T>
 Matrix<T, MATRIX_SIZE_DYNAMIC, 1>::Matrix(size_t rows, ConstReference value)
@@ -1180,34 +1159,18 @@ Matrix<T, MATRIX_SIZE_DYNAMIC, 1>::Matrix(size_t rows, ConstPointer ptr)
 }
 
 template <typename T>
-Matrix<T, MATRIX_SIZE_DYNAMIC, 1>::Matrix(const Matrix& other)
-    : m_elements(other.m_elements)
-{
-    // Do nothing
-}
+Matrix<T, MATRIX_SIZE_DYNAMIC, 1>::Matrix(const Matrix& other) = default;
 
 template <typename T>
-Matrix<T, MATRIX_SIZE_DYNAMIC, 1>::Matrix(Matrix&& other) noexcept
-    : m_elements(std::move(other.m_elements))
-{
-    // Do nothing
-}
+Matrix<T, MATRIX_SIZE_DYNAMIC, 1>::Matrix(Matrix&& other) noexcept = default;
 
 template <typename T>
 Matrix<T, MATRIX_SIZE_DYNAMIC, 1>& Matrix<T, MATRIX_SIZE_DYNAMIC, 1>::operator=(
-    const Matrix& other)
-{
-    m_elements = other.m_elements;
-    return *this;
-}
+    const Matrix& other) = default;
 
 template <typename T>
 Matrix<T, MATRIX_SIZE_DYNAMIC, 1>& Matrix<T, MATRIX_SIZE_DYNAMIC, 1>::operator=(
-    Matrix&& other) noexcept
-{
-    m_elements = std::move(other.m_elements);
-    return *this;
-}
+    Matrix&& other) noexcept = default;
 
 template <typename T>
 void Matrix<T, MATRIX_SIZE_DYNAMIC, 1>::Fill(const T& val)
@@ -1367,7 +1330,7 @@ void operator*=(Matrix<T, R1, C1>& a, const MatrixExpression<T, R2, C2, M2>& b)
 {
     assert(a.GetCols() == b.GetRows());
 
-    Matrix<T, R1, C2> c = a * b;
+    Matrix<T, R1, C2> c(a * b);
     a = c;
 }
 
@@ -1453,7 +1416,8 @@ Accumulate(const MatrixExpression<T, Rows, Cols, M1>& a, const T& init,
            BinaryOperation op)
 {
     return Internal::Reduce<T, Rows, Cols, BinaryOperation, NoOp<T>,
-                            Rows * Cols - 1>::Call(a, init, op, NoOp<T>());
+                            Rows * Cols - 1>::Call(Matrix<T, Rows, Cols>(a),
+                                                   init, op, NoOp<T>());
 }
 
 template <typename T, size_t Rows, size_t Cols, typename M1>
@@ -1461,7 +1425,8 @@ constexpr std::enable_if_t<TraitIsMatrixSizeStatic<Rows, Cols>::value, T>
 Accumulate(const MatrixExpression<T, Rows, Cols, M1>& a, const T& init)
 {
     return Internal::Reduce<T, Rows, Cols, std::plus<T>, NoOp<T>,
-                            Rows * Cols - 1>::Call(a, init, std::plus<T>(),
+                            Rows * Cols - 1>::Call(Matrix<T, Rows, Cols>(a),
+                                                   init, std::plus<T>(),
                                                    NoOp<T>());
 }
 
@@ -1470,8 +1435,8 @@ constexpr std::enable_if_t<TraitIsMatrixSizeStatic<Rows, Cols>::value, T>
 Accumulate(const MatrixExpression<T, Rows, Cols, M1>& a)
 {
     return Internal::Reduce<T, Rows, Cols, std::plus<T>, NoOp<T>,
-                            Rows * Cols - 1>::Call(a, std::plus<T>(),
-                                                   NoOp<T>());
+                            Rows * Cols - 1>::Call(Matrix<T, Rows, Cols>(a),
+                                                   std::plus<T>(), NoOp<T>());
 }
 
 template <typename T, size_t Rows, size_t Cols, typename M1,

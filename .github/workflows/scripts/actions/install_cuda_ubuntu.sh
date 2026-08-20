@@ -26,13 +26,13 @@ CUDA_PACKAGES_IN=(
 ## -------------------
 # returns 0 (true) if a >= b
 function version_ge() {
-    [ "$#" != "2" ] && echo "${FUNCNAME[0]} requires exactly 2 arguments." && exit 1
-    [ "$(printf '%s\n' "$@" | sort -V | head -n 1)" == "$2" ]
+    [[ "$#" != "2" ]] && echo "${FUNCNAME[0]} requires exactly 2 arguments." && exit 1
+    [[ "$(printf '%s\n' "$@" | sort -V | head -n 1)" == "$2" ]]
 }
 # returns 0 (true) if a > b
 function version_gt() {
-    [ "$#" != "2" ] && echo "${FUNCNAME[0]} requires exactly 2 arguments." && exit 1
-    if [ "$1" = "$2" ]
+    [[ "$#" != "2" ]] && echo "${FUNCNAME[0]} requires exactly 2 arguments." && exit 1
+    if [[ "$1" = "$2" ]]
     then
       return 1
     else
@@ -41,13 +41,13 @@ function version_gt() {
 }
 # returns 0 (true) if a <= b
 function version_le() {
-    [ "$#" != "2" ] && echo "${FUNCNAME[0]} requires exactly 2 arguments." && exit 1
-    [ "$(printf '%s\n' "$@" | sort -V | head -n 1)" == "$1" ]
+    [[ "$#" != "2" ]] && echo "${FUNCNAME[0]} requires exactly 2 arguments." && exit 1
+    [[ "$(printf '%s\n' "$@" | sort -V | head -n 1)" == "$1" ]]
 }
 # returns 0 (true) if a < b
 function version_lt() {
-    [ "$#" != "2" ] && echo "${FUNCNAME[0]} requires exactly 2 arguments." && exit 1
-    if [ "$1" = "$2" ]
+    [[ "$#" != "2" ]] && echo "${FUNCNAME[0]} requires exactly 2 arguments." && exit 1
+    if [[ "$1" = "$2" ]]
     then
       return 1
     else
@@ -78,16 +78,16 @@ echo "CUDA_PATCH: ${CUDA_PATCH}"
 echo "UBUNTU_VERSION: ${UBUNTU_VERSION}"
 
 # If we don't know the CUDA_MAJOR or MINOR, error.
-if [ -z "${CUDA_MAJOR}" ] ; then
+if [[ -z "${CUDA_MAJOR}" ]] ; then
     echo "Error: Unknown CUDA Major version. Aborting."
     exit 1
 fi
-if [ -z "${CUDA_MINOR}" ] ; then
+if [[ -z "${CUDA_MINOR}" ]] ; then
     echo "Error: Unknown CUDA Minor version. Aborting."
     exit 1
 fi
 # If we don't know the Ubuntu version, error.
-if [ -z ${UBUNTU_VERSION} ]; then
+if [[ -z "${UBUNTU_VERSION}" ]]; then
     echo "Error: Unknown Ubuntu version. Aborting."
     exit 1
 fi
@@ -123,8 +123,8 @@ echo "CUDA_PACKAGES ${CUDA_PACKAGES}"
 
 PIN_FILENAME="cuda-ubuntu${UBUNTU_VERSION}.pin"
 PIN_URL="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VERSION}/x86_64/${PIN_FILENAME}"
-APT_KEY_URL="http://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VERSION}/x86_64/3bf863cc.pub"
-REPO_URL="http://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VERSION}/x86_64/"
+APT_KEY_URL="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VERSION}/x86_64/3bf863cc.pub"
+REPO_URL="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VERSION}/x86_64/"
 
 echo "PIN_FILENAME ${PIN_FILENAME}"
 echo "PIN_URL ${PIN_URL}"
@@ -134,7 +134,7 @@ echo "APT_KEY_URL ${APT_KEY_URL}"
 ## Install
 ## -----------------
 echo "Adding CUDA Repository"
-wget ${PIN_URL}
+wget --max-redirect=0 "${PIN_URL}"
 sudo mv ${PIN_FILENAME} /etc/apt/preferences.d/cuda-repository-pin-600
 sudo apt-key adv --fetch-keys ${APT_KEY_URL}
 sudo add-apt-repository "deb ${REPO_URL} /"

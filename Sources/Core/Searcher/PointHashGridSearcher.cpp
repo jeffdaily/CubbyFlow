@@ -15,6 +15,9 @@
 #include <Flatbuffers/generated/PointHashGridSearcher2_generated.h>
 #include <Flatbuffers/generated/PointHashGridSearcher3_generated.h>
 
+#include <algorithm>
+#include <span>
+
 namespace CubbyFlow
 {
 template <size_t N>
@@ -29,14 +32,7 @@ PointHashGridSearcher<N>::PointHashGridSearcher(
 
 template <size_t N>
 PointHashGridSearcher<N>::PointHashGridSearcher(
-    const PointHashGridSearcher& other)
-    : m_gridSpacing(other.m_gridSpacing),
-      m_resolution(other.m_resolution),
-      m_points(other.m_points),
-      m_buckets(other.m_buckets)
-{
-    // Do nothing
-}
+    const PointHashGridSearcher& other) = default;
 
 template <size_t N>
 PointHashGridSearcher<N>::PointHashGridSearcher(
@@ -51,14 +47,7 @@ PointHashGridSearcher<N>::PointHashGridSearcher(
 
 template <size_t N>
 PointHashGridSearcher<N>& PointHashGridSearcher<N>::operator=(
-    const PointHashGridSearcher& other)
-{
-    m_gridSpacing = other.m_gridSpacing;
-    m_resolution = other.m_resolution;
-    m_points = other.m_points;
-    m_buckets = other.m_buckets;
-    return *this;
-}
+    const PointHashGridSearcher& other) = default;
 
 template <size_t N>
 PointHashGridSearcher<N>& PointHashGridSearcher<N>::operator=(
@@ -204,9 +193,7 @@ template <size_t N>
 std::shared_ptr<PointNeighborSearcher<N>> PointHashGridSearcher<N>::Clone()
     const
 {
-    return std::shared_ptr<PointHashGridSearcher>(
-        new PointHashGridSearcher{ *this },
-        [](PointHashGridSearcher* obj) { delete obj; });
+    return std::make_shared<PointHashGridSearcher>(*this);
 }
 
 template <size_t N>
@@ -239,7 +226,8 @@ PointHashGridSearcher<N>::GetBuilder()
 
 template <size_t N>
 template <size_t M>
-std::enable_if_t<M == 2, void> PointHashGridSearcher<N>::Serialize(
+CUBBYFLOW_REQUIRES(M == 2)
+void PointHashGridSearcher<N>::Serialize(
     const PointHashGridSearcher<2>& searcher, std::vector<uint8_t>* buffer)
 {
     flatbuffers::FlatBufferBuilder builder(1024);
@@ -292,7 +280,8 @@ std::enable_if_t<M == 2, void> PointHashGridSearcher<N>::Serialize(
 
 template <size_t N>
 template <size_t M>
-std::enable_if_t<M == 3, void> PointHashGridSearcher<N>::Serialize(
+CUBBYFLOW_REQUIRES(M == 3)
+void PointHashGridSearcher<N>::Serialize(
     const PointHashGridSearcher<3>& searcher, std::vector<uint8_t>* buffer)
 {
     flatbuffers::FlatBufferBuilder builder(1024);
@@ -345,8 +334,9 @@ std::enable_if_t<M == 3, void> PointHashGridSearcher<N>::Serialize(
 
 template <size_t N>
 template <size_t M>
-std::enable_if_t<M == 2, void> PointHashGridSearcher<N>::Deserialize(
-    const std::vector<uint8_t>& buffer, PointHashGridSearcher<2>& searcher)
+CUBBYFLOW_REQUIRES(M == 2)
+void PointHashGridSearcher<N>::Deserialize(const std::vector<uint8_t>& buffer,
+                                           PointHashGridSearcher<2>& searcher)
 {
     const fbs::PointHashGridSearcher2* fbsSearcher =
         fbs::GetPointHashGridSearcher2(buffer.data());
@@ -377,16 +367,18 @@ std::enable_if_t<M == 2, void> PointHashGridSearcher<N>::Deserialize(
             flatbuffers::Offset<fbs::PointHashGridSearcherBucket2>>::return_type
             fbsBucket = fbsBuckets->Get(i);
         searcher.m_buckets[i].Resize(fbsBucket->data()->size());
-        std::transform(fbsBucket->data()->begin(), fbsBucket->data()->end(),
-                       searcher.m_buckets[i].begin(),
-                       [](uint64_t val) { return static_cast<size_t>(val); });
+        std::ranges::transform(
+            std::span{ fbsBucket->data()->data(), fbsBucket->data()->size() },
+            searcher.m_buckets[i].begin(),
+            [](uint64_t val) { return static_cast<size_t>(val); });
     }
 }
 
 template <size_t N>
 template <size_t M>
-std::enable_if_t<M == 3, void> PointHashGridSearcher<N>::Deserialize(
-    const std::vector<uint8_t>& buffer, PointHashGridSearcher<3>& searcher)
+CUBBYFLOW_REQUIRES(M == 3)
+void PointHashGridSearcher<N>::Deserialize(const std::vector<uint8_t>& buffer,
+                                           PointHashGridSearcher<3>& searcher)
 {
     const fbs::PointHashGridSearcher3* fbsSearcher =
         fbs::GetPointHashGridSearcher3(buffer.data());
@@ -418,9 +410,10 @@ std::enable_if_t<M == 3, void> PointHashGridSearcher<N>::Deserialize(
             flatbuffers::Offset<fbs::PointHashGridSearcherBucket3>>::return_type
             fbsBucket = fbsBuckets->Get(i);
         searcher.m_buckets[i].Resize(fbsBucket->data()->size());
-        std::transform(fbsBucket->data()->begin(), fbsBucket->data()->end(),
-                       searcher.m_buckets[i].begin(),
-                       [](uint64_t val) { return static_cast<size_t>(val); });
+        std::ranges::transform(
+            std::span{ fbsBucket->data()->data(), fbsBucket->data()->size() },
+            searcher.m_buckets[i].begin(),
+            [](uint64_t val) { return static_cast<size_t>(val); });
     }
 }
 
@@ -451,9 +444,7 @@ template <size_t N>
 std::shared_ptr<PointHashGridSearcher<N>>
 PointHashGridSearcher<N>::Builder::MakeShared() const
 {
-    return std::shared_ptr<PointHashGridSearcher>(
-        new PointHashGridSearcher{ m_resolution, m_gridSpacing },
-        [](PointHashGridSearcher* obj) { delete obj; });
+    return std::make_shared<PointHashGridSearcher>(m_resolution, m_gridSpacing);
 }
 
 template <size_t N>

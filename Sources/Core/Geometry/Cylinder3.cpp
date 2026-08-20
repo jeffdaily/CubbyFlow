@@ -116,13 +116,13 @@ bool Cylinder3::IntersectsLocal(const Ray3D& ray) const
         return false;
     }
 
-    double t1 = (-B + std::sqrt(B * B - A * C)) / A;
-    double t2 = (-B - std::sqrt(B * B - A * C)) / A;
+    const double sqrtDiscriminant = std::sqrt(B * B - A * C);
+    const double t2 = (-B - sqrtDiscriminant) / A;
     double tCylinder = t2;
 
     if (t2 < 0.0)
     {
-        tCylinder = t1;
+        tCylinder = (-B + sqrtDiscriminant) / A;
     }
 
     Vector3D pointOnCylinder = ray.PointAt(tCylinder);
@@ -208,13 +208,13 @@ SurfaceRayIntersection3 Cylinder3::ClosestIntersectionLocal(
         return intersection;
     }
 
-    double t1 = (-B + std::sqrt(B * B - A * C)) / A;
-    double t2 = (-B - std::sqrt(B * B - A * C)) / A;
+    const double sqrtDiscriminant = std::sqrt(B * B - A * C);
+    const double t2 = (-B - sqrtDiscriminant) / A;
     double tCylinder = t2;
 
     if (t2 < 0.0)
     {
-        tCylinder = t1;
+        tCylinder = (-B + sqrtDiscriminant) / A;
     }
 
     Vector3D pointOnCylinder = ray.PointAt(tCylinder);
@@ -300,9 +300,7 @@ Cylinder3 Cylinder3::Builder::Build() const
 
 Cylinder3Ptr Cylinder3::Builder::MakeShared() const
 {
-    return std::shared_ptr<Cylinder3>(
-        new Cylinder3{ m_center, m_radius, m_height, m_transform,
-                       m_isNormalFlipped },
-        [](Cylinder3* obj) { delete obj; });
+    return std::make_shared<Cylinder3>(m_center, m_radius, m_height,
+                                       m_transform, m_isNormalFlipped);
 }
 }  // namespace CubbyFlow

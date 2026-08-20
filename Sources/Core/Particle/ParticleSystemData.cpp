@@ -72,7 +72,7 @@ ParticleSystemData<N>::ParticleSystemData(size_t numberOfParticles)
         Vector<size_t, N>::MakeConstant(DEFAULT_HASH_GRID_RESOLUTION),
         2.0 * m_radius);
 
-    Resize(numberOfParticles);
+    ParticleSystemData<N>::Resize(numberOfParticles);
 }
 
 template <size_t N>
@@ -117,30 +117,11 @@ template <size_t N>
 ParticleSystemData<N>& ParticleSystemData<N>::operator=(
     const ParticleSystemData& other)
 {
-    if (this == &other)
+    if (this != &other)
     {
-        return *this;
+        *this = ParticleSystemData(other);
     }
 
-    m_radius = other.m_radius;
-    m_mass = other.m_mass;
-    m_positionIdx = other.m_positionIdx;
-    m_velocityIdx = other.m_velocityIdx;
-    m_forceIdx = other.m_forceIdx;
-    m_numberOfParticles = other.m_numberOfParticles;
-
-    for (auto& data : other.m_scalarDataList)
-    {
-        m_scalarDataList.Append(data);
-    }
-
-    for (auto& data : other.m_vectorDataList)
-    {
-        m_vectorDataList.Append(data);
-    }
-
-    m_neighborSearcher = other.m_neighborSearcher->Clone();
-    m_neighborLists = other.m_neighborLists;
     return *this;
 }
 
@@ -334,22 +315,25 @@ void ParticleSystemData<N>::AddParticles(
     ArrayView1<Matrix<double, N, 1>> vel = Velocities();
     ArrayView1<Matrix<double, N, 1>> frc = Forces();
 
-    ParallelFor(ZERO_SIZE, newPositions.Length(), [&](size_t i) {
-        pos[i + oldNumberOfParticles] = newPositions[i];
-    });
+    ParallelFor(ZERO_SIZE, newPositions.Length(),
+                [&pos, &oldNumberOfParticles, &newPositions](size_t i) {
+                    pos[i + oldNumberOfParticles] = newPositions[i];
+                });
 
     if (newVelocities.Length() > 0)
     {
-        ParallelFor(ZERO_SIZE, newPositions.Length(), [&](size_t i) {
-            vel[i + oldNumberOfParticles] = newVelocities[i];
-        });
+        ParallelFor(ZERO_SIZE, newPositions.Length(),
+                    [&vel, &oldNumberOfParticles, &newVelocities](size_t i) {
+                        vel[i + oldNumberOfParticles] = newVelocities[i];
+                    });
     }
 
     if (newForces.Length() > 0)
     {
-        ParallelFor(ZERO_SIZE, newPositions.Length(), [&](size_t i) {
-            frc[i + oldNumberOfParticles] = newForces[i];
-        });
+        ParallelFor(ZERO_SIZE, newPositions.Length(),
+                    [&frc, &oldNumberOfParticles, &newForces](size_t i) {
+                        frc[i + oldNumberOfParticles] = newForces[i];
+                    });
     }
 }
 
@@ -401,7 +385,8 @@ void ParticleSystemData<N>::BuildNeighborLists(double maxSearchRadius)
         m_neighborLists[i].Clear();
 
         m_neighborSearcher->ForEachNearbyPoint(
-            origin, maxSearchRadius, [&](size_t j, const Vector<double, N>&) {
+            origin, maxSearchRadius,
+            [&i, this](size_t j, const Vector<double, N>&) {
                 if (i != j)
                 {
                     m_neighborLists[i].Append(j);
@@ -437,30 +422,14 @@ void ParticleSystemData<N>::Deserialize(const std::vector<uint8_t>& buffer)
         GetFlatbuffersParticleSystemData<N>::GetParticleSystemData(
             buffer.data());
     Deserialize(fbsParticleSystemData, *this);
+    Resize(NumberOfParticles());
 }
 
 template <size_t N>
 void ParticleSystemData<N>::Set(const ParticleSystemData& other)
 {
-    m_radius = other.m_radius;
-    m_mass = other.m_mass;
-    m_positionIdx = other.m_positionIdx;
-    m_velocityIdx = other.m_velocityIdx;
-    m_forceIdx = other.m_forceIdx;
-    m_numberOfParticles = other.m_numberOfParticles;
-
-    for (auto& data : other.m_scalarDataList)
-    {
-        m_scalarDataList.Append(data);
-    }
-
-    for (auto& data : other.m_vectorDataList)
-    {
-        m_vectorDataList.Append(data);
-    }
-
-    m_neighborSearcher = other.m_neighborSearcher->Clone();
-    m_neighborLists = other.m_neighborLists;
+    *this = other;
+    Resize(NumberOfParticles());
 }
 
 template <size_t N>

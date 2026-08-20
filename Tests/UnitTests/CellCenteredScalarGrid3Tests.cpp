@@ -2,6 +2,8 @@
 
 #include <Core/Grid/CellCenteredScalarGrid.hpp>
 
+#include <utility>
+
 using namespace CubbyFlow;
 
 TEST(CellCenteredScalarGrid3, Constructors)
@@ -42,7 +44,7 @@ TEST(CellCenteredScalarGrid3, Constructors)
     EXPECT_DOUBLE_EQ(4.5, grid2.DataOrigin().x);
     EXPECT_DOUBLE_EQ(6.0, grid2.DataOrigin().y);
     EXPECT_DOUBLE_EQ(7.5, grid2.DataOrigin().z);
-    grid2.ForEachDataPointIndex([&](size_t i, size_t j, size_t k) {
+    grid2.ForEachDataPointIndex([&grid2](size_t i, size_t j, size_t k) {
         EXPECT_DOUBLE_EQ(7.0, grid2(i, j, k));
     });
 
@@ -63,9 +65,27 @@ TEST(CellCenteredScalarGrid3, Constructors)
     EXPECT_DOUBLE_EQ(4.5, grid3.DataOrigin().x);
     EXPECT_DOUBLE_EQ(6.0, grid3.DataOrigin().y);
     EXPECT_DOUBLE_EQ(7.5, grid3.DataOrigin().z);
-    grid3.ForEachDataPointIndex([&](size_t i, size_t j, size_t k) {
+    grid3.ForEachDataPointIndex([&grid3](size_t i, size_t j, size_t k) {
         EXPECT_DOUBLE_EQ(7.0, grid3(i, j, k));
     });
+}
+
+TEST(CellCenteredScalarGrid3, MoveSemantics)
+{
+    CellCenteredScalarGrid3 source({ 2, 2, 2 }, { 1.0, 2.0, 3.0 },
+                                   { 4.0, 5.0, 6.0 }, 7.0);
+    CellCenteredScalarGrid3 moved(std::move(source));
+
+    EXPECT_EQ(Vector3UZ(2, 2, 2), moved.Resolution());
+    EXPECT_DOUBLE_EQ(7.0, moved(0, 0, 0));
+    EXPECT_DOUBLE_EQ(7.0, moved.Sample(moved.DataOrigin()));
+
+    CellCenteredScalarGrid3 assigned;
+    assigned = std::move(moved);
+
+    EXPECT_EQ(Vector3UZ(2, 2, 2), assigned.Resolution());
+    EXPECT_DOUBLE_EQ(7.0, assigned(0, 0, 0));
+    EXPECT_DOUBLE_EQ(7.0, assigned.Sample(assigned.DataOrigin()));
 }
 
 TEST(CellCenteredScalarGrid3, Swap)
@@ -91,7 +111,7 @@ TEST(CellCenteredScalarGrid3, Swap)
     EXPECT_DOUBLE_EQ(6.0, grid1.DataOrigin().x);
     EXPECT_DOUBLE_EQ(5.5, grid1.DataOrigin().y);
     EXPECT_DOUBLE_EQ(7.5, grid1.DataOrigin().z);
-    grid1.ForEachDataPointIndex([&](size_t i, size_t j, size_t k) {
+    grid1.ForEachDataPointIndex([&grid1](size_t i, size_t j, size_t k) {
         EXPECT_DOUBLE_EQ(8.0, grid1(i, j, k));
     });
 
@@ -110,7 +130,7 @@ TEST(CellCenteredScalarGrid3, Swap)
     EXPECT_DOUBLE_EQ(4.5, grid2.DataOrigin().x);
     EXPECT_DOUBLE_EQ(6.0, grid2.DataOrigin().y);
     EXPECT_DOUBLE_EQ(7.5, grid2.DataOrigin().z);
-    grid2.ForEachDataPointIndex([&](size_t i, size_t j, size_t k) {
+    grid2.ForEachDataPointIndex([&grid2](size_t i, size_t j, size_t k) {
         EXPECT_DOUBLE_EQ(7.0, grid2(i, j, k));
     });
 }
@@ -138,7 +158,7 @@ TEST(CellCenteredScalarGrid3, Set)
     EXPECT_DOUBLE_EQ(6.0, grid1.DataOrigin().x);
     EXPECT_DOUBLE_EQ(5.5, grid1.DataOrigin().y);
     EXPECT_DOUBLE_EQ(7.5, grid1.DataOrigin().z);
-    grid1.ForEachDataPointIndex([&](size_t i, size_t j, size_t k) {
+    grid1.ForEachDataPointIndex([&grid1](size_t i, size_t j, size_t k) {
         EXPECT_DOUBLE_EQ(8.0, grid1(i, j, k));
     });
 }
@@ -165,7 +185,7 @@ TEST(CellCenteredScalarGrid3, AssignmentOperator)
     EXPECT_DOUBLE_EQ(6.0, grid1.DataOrigin().x);
     EXPECT_DOUBLE_EQ(5.5, grid1.DataOrigin().y);
     EXPECT_DOUBLE_EQ(7.5, grid1.DataOrigin().z);
-    grid1.ForEachDataPointIndex([&](size_t i, size_t j, size_t k) {
+    grid1.ForEachDataPointIndex([&grid1](size_t i, size_t j, size_t k) {
         EXPECT_DOUBLE_EQ(8.0, grid1(i, j, k));
     });
 }
@@ -191,7 +211,7 @@ TEST(CellCenteredScalarGrid3, Clone)
     EXPECT_DOUBLE_EQ(6.0, grid1->DataOrigin().x);
     EXPECT_DOUBLE_EQ(5.5, grid1->DataOrigin().y);
     EXPECT_DOUBLE_EQ(7.5, grid1->DataOrigin().z);
-    grid1->ForEachDataPointIndex([&](size_t i, size_t j, size_t k) {
+    grid1->ForEachDataPointIndex([&grid1](size_t i, size_t j, size_t k) {
         EXPECT_DOUBLE_EQ(8.0, (*grid1)(i, j, k));
     });
 }
@@ -220,7 +240,7 @@ TEST(CellCenteredScalarGrid3, Builder)
         EXPECT_DOUBLE_EQ(6.0, grid1->DataOrigin().x);
         EXPECT_DOUBLE_EQ(5.5, grid1->DataOrigin().y);
         EXPECT_DOUBLE_EQ(7.5, grid1->DataOrigin().z);
-        grid1->ForEachDataPointIndex([&](size_t i, size_t j, size_t k) {
+        grid1->ForEachDataPointIndex([&grid1](size_t i, size_t j, size_t k) {
             EXPECT_DOUBLE_EQ(8.0, (*grid1)(i, j, k));
         });
     }
@@ -248,7 +268,7 @@ TEST(CellCenteredScalarGrid3, Builder)
         EXPECT_DOUBLE_EQ(6.0, grid1.DataOrigin().x);
         EXPECT_DOUBLE_EQ(5.5, grid1.DataOrigin().y);
         EXPECT_DOUBLE_EQ(7.5, grid1.DataOrigin().z);
-        grid1.ForEachDataPointIndex([&](size_t i, size_t j, size_t k) {
+        grid1.ForEachDataPointIndex([&grid1](size_t i, size_t j, size_t k) {
             EXPECT_DOUBLE_EQ(8.0, grid1(i, j, k));
         });
     }
@@ -361,7 +381,7 @@ TEST(CellCenteredScalarGrid3, Serialization)
 {
     CellCenteredScalarGrid3 grid1({ 5, 4, 3 }, { 1.0, 2.0, 3.0 },
                                   { -5.0, 3.0, 1.0 });
-    grid1.Fill([&](const Vector3D& pt) { return pt.x + pt.y + pt.z; });
+    grid1.Fill([](const Vector3D& pt) { return pt.x + pt.y + pt.z; });
 
     // Serialize to in-memory stream
     std::vector<uint8_t> buffer1;
@@ -387,7 +407,7 @@ TEST(CellCenteredScalarGrid3, Serialization)
     EXPECT_DOUBLE_EQ(11.0, grid2.GetBoundingBox().upperCorner.y);
     EXPECT_DOUBLE_EQ(10.0, grid2.GetBoundingBox().upperCorner.z);
 
-    grid1.ForEachDataPointIndex([&](size_t i, size_t j, size_t k) {
+    grid1.ForEachDataPointIndex([&grid1, &grid2](size_t i, size_t j, size_t k) {
         EXPECT_DOUBLE_EQ(grid1(i, j, k), grid2(i, j, k));
     });
 

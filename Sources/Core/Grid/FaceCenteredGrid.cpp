@@ -10,6 +10,8 @@
 
 #include <Core/Grid/FaceCenteredGrid.hpp>
 
+#include <algorithm>
+
 namespace CubbyFlow
 {
 namespace Internal
@@ -548,9 +550,7 @@ void FaceCenteredGrid<N>::Fill(
 template <size_t N>
 std::shared_ptr<VectorGrid<N>> FaceCenteredGrid<N>::Clone() const
 {
-    return std::shared_ptr<FaceCenteredGrid<N>>(
-        new FaceCenteredGrid<N>{ *this },
-        [](FaceCenteredGrid<N>* obj) { delete obj; });
+    return std::make_shared<FaceCenteredGrid<N>>(*this);
 }
 
 template <size_t N>
@@ -671,8 +671,8 @@ void FaceCenteredGrid<N>::GetData(Array1<double>& data) const
     size_t cnt = 0;
     for (size_t i = 0; i < N; ++i)
     {
-        std::for_each(m_data[i].begin(), m_data[i].end(),
-                      [&](double value) { data[cnt++] = value; });
+        std::ranges::for_each(
+            m_data[i], [&data, &cnt](double value) { data[cnt++] = value; });
     }
 }
 
@@ -689,9 +689,10 @@ void FaceCenteredGrid<N>::SetData(const ConstArrayView1<double>& data)
     size_t cnt = 0;
     for (size_t i = 0; i < N; ++i)
     {
-        ForEachIndex(m_data[i].Size(), [&](auto... indices) {
-            m_data[i](indices...) = data[cnt++];
-        });
+        ForEachIndex(m_data[i].Size(),
+                     [this, &i, &data, &cnt](auto... indices) {
+                         m_data[i](indices...) = data[cnt++];
+                     });
     }
 }
 
@@ -741,10 +742,8 @@ template <size_t N>
 std::shared_ptr<FaceCenteredGrid<N>> FaceCenteredGrid<N>::Builder::MakeShared()
     const
 {
-    return std::shared_ptr<FaceCenteredGrid>(
-        new FaceCenteredGrid{ m_resolution, m_gridSpacing, m_gridOrigin,
-                              m_initialVal },
-        [](FaceCenteredGrid* obj) { delete obj; });
+    return std::make_shared<FaceCenteredGrid>(m_resolution, m_gridSpacing,
+                                              m_gridOrigin, m_initialVal);
 }
 
 template <size_t N>
@@ -753,9 +752,8 @@ std::shared_ptr<VectorGrid<N>> FaceCenteredGrid<N>::Builder::Build(
     const Vector<double, N>& gridOrigin,
     const Vector<double, N>& initialVal) const
 {
-    return std::shared_ptr<FaceCenteredGrid>(
-        new FaceCenteredGrid{ resolution, gridSpacing, gridOrigin, initialVal },
-        [](FaceCenteredGrid* obj) { delete obj; });
+    return std::make_shared<FaceCenteredGrid>(resolution, gridSpacing,
+                                              gridOrigin, initialVal);
 }
 
 template class FaceCenteredGrid<2>;

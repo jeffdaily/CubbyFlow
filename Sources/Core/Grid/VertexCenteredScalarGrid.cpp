@@ -23,35 +23,25 @@ VertexCenteredScalarGrid<N>::VertexCenteredScalarGrid(
 template <size_t N>
 VertexCenteredScalarGrid<N>::VertexCenteredScalarGrid(
     const VertexCenteredScalarGrid& other)
-    : ScalarGrid<N>{ other }
 {
     Set(other);
 }
 
 template <size_t N>
 VertexCenteredScalarGrid<N>::VertexCenteredScalarGrid(
-    VertexCenteredScalarGrid&& other) noexcept
-    : ScalarGrid<N>{ std::move(other) }
-{
-    // Do nothing
-}
+    VertexCenteredScalarGrid&& other) noexcept = default;
 
 template <size_t N>
 VertexCenteredScalarGrid<N>& VertexCenteredScalarGrid<N>::operator=(
     const VertexCenteredScalarGrid& other)
 {
     Set(other);
-    ScalarGrid<N>::operator=(other);
     return *this;
 }
 
 template <size_t N>
 VertexCenteredScalarGrid<N>& VertexCenteredScalarGrid<N>::operator=(
-    VertexCenteredScalarGrid&& other) noexcept
-{
-    ScalarGrid<N>::operator=(std::move(other));
-    return *this;
-}
+    VertexCenteredScalarGrid&& other) noexcept = default;
 
 template <size_t N>
 Vector<size_t, N> VertexCenteredScalarGrid<N>::DataSize() const
@@ -73,9 +63,7 @@ Vector<double, N> VertexCenteredScalarGrid<N>::DataOrigin() const
 template <size_t N>
 std::shared_ptr<ScalarGrid<N>> VertexCenteredScalarGrid<N>::Clone() const
 {
-    return std::shared_ptr<VertexCenteredScalarGrid<N>>(
-        new VertexCenteredScalarGrid<N>{ *this },
-        [](VertexCenteredScalarGrid<N>* obj) { delete obj; });
+    return std::make_shared<VertexCenteredScalarGrid<N>>(*this);
 }
 
 template <size_t N>
@@ -147,10 +135,8 @@ template <size_t N>
 std::shared_ptr<VertexCenteredScalarGrid<N>>
 VertexCenteredScalarGrid<N>::Builder::MakeShared() const
 {
-    return std::shared_ptr<VertexCenteredScalarGrid>(
-        new VertexCenteredScalarGrid{ m_resolution, m_gridSpacing, m_gridOrigin,
-                                      m_initialVal },
-        [](VertexCenteredScalarGrid* obj) { delete obj; });
+    return std::make_shared<VertexCenteredScalarGrid>(
+        m_resolution, m_gridSpacing, m_gridOrigin, m_initialVal);
 }
 
 template <size_t N>
@@ -158,10 +144,8 @@ std::shared_ptr<ScalarGrid<N>> VertexCenteredScalarGrid<N>::Builder::Build(
     const Vector<size_t, N>& resolution, const Vector<double, N>& gridSpacing,
     const Vector<double, N>& gridOrigin, double initialVal) const
 {
-    return std::shared_ptr<VertexCenteredScalarGrid>(
-        new VertexCenteredScalarGrid{ resolution, gridSpacing, gridOrigin,
-                                      initialVal },
-        [](VertexCenteredScalarGrid* obj) { delete obj; });
+    return std::make_shared<VertexCenteredScalarGrid>(resolution, gridSpacing,
+                                                      gridOrigin, initialVal);
 }
 
 template class VertexCenteredScalarGrid<2>;

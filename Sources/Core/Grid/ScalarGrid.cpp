@@ -34,7 +34,7 @@ struct GetFlatbuffersScalarGrid<2>
         return CreateScalarGrid2(fbb, resolution, gridSpacing, origin, data);
     }
 
-    static const fbs::ScalarGrid2* GetScalarGrid(const void* buf)
+    static const fbs::ScalarGrid2* GetScalarGrid(const uint8_t* buf)
     {
         return fbs::GetScalarGrid2(buf);
     }
@@ -51,7 +51,7 @@ struct GetFlatbuffersScalarGrid<3>
         return CreateScalarGrid3(fbb, resolution, gridSpacing, origin, data);
     }
 
-    static const fbs::ScalarGrid3* GetScalarGrid(const void* buf)
+    static const fbs::ScalarGrid3* GetScalarGrid(const uint8_t* buf)
     {
         return fbs::GetScalarGrid3(buf);
     }
@@ -73,9 +73,11 @@ ScalarGrid<N>::ScalarGrid(const ScalarGrid& other) : Grid<N>{ other }
 
 template <size_t N>
 ScalarGrid<N>::ScalarGrid(ScalarGrid&& other) noexcept
-    : Grid<N>{ std::move(other) }, m_data(std::move(other.m_data))
+    : Grid<N>{ std::move(other) },
+      m_data(std::move(other.m_data)),
+      m_linearSampler(std::move(other.m_linearSampler))
 {
-    // Do nothing
+    m_sampler = m_linearSampler.Functor();
 }
 
 template <size_t N>
@@ -89,6 +91,9 @@ template <size_t N>
 ScalarGrid<N>& ScalarGrid<N>::operator=(ScalarGrid&& other) noexcept
 {
     Grid<N>::operator=(std::move(other));
+    m_data = std::move(other.m_data);
+    m_linearSampler = std::move(other.m_linearSampler);
+    m_sampler = m_linearSampler.Functor();
     return *this;
 }
 

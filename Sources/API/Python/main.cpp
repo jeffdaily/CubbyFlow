@@ -54,6 +54,7 @@
 #include <API/Python/Grid/VertexCenteredScalarGrid.hpp>
 #include <API/Python/Grid/VertexCenteredVectorGrid.hpp>
 #include <API/Python/Math/Quaternion.hpp>
+#include <API/Python/Particle/MPM/MPMSystemData.hpp>
 #include <API/Python/Particle/ParticleSystemData.hpp>
 #include <API/Python/Particle/SPH/SPHSystemData.hpp>
 #include <API/Python/PointsToImplicit/AnisotropicPointsToImplicit.hpp>
@@ -91,6 +92,7 @@
 #include <API/Python/Solver/LevelSet/LevelSetLiquidSolver.hpp>
 #include <API/Python/Solver/LevelSet/LevelSetSolver.hpp>
 #include <API/Python/Solver/LevelSet/UpwindLevelSetSolver.hpp>
+#include <API/Python/Solver/Particle/MPM/SnowMPMSolver.hpp>
 #include <API/Python/Solver/Particle/PCISPH/PCISPHSolver.hpp>
 #include <API/Python/Solver/Particle/ParticleSystemSolver.hpp>
 #include <API/Python/Solver/Particle/SPH/SPHSolver.hpp>
@@ -218,6 +220,8 @@ PYBIND11_MODULE(pyCubbyFlow, m)
     AddGridSystemData3(m);
     AddParticleSystemData2(m);
     AddParticleSystemData3(m);
+    AddMPMSystemData2(m);
+    AddMPMSystemData3(m);
     AddSPHSystemData2(m);
     AddSPHSystemData3(m);
 
@@ -328,6 +332,8 @@ PYBIND11_MODULE(pyCubbyFlow, m)
     AddAPICSolver3(m);
     AddParticleSystemSolver2(m);
     AddParticleSystemSolver3(m);
+    AddSnowMPMSolver2(m);
+    AddSnowMPMSolver3(m);
     AddSPHSolver2(m);
     AddSPHSolver3(m);
     AddPCISPHSolver2(m);

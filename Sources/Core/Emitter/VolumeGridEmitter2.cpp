@@ -15,6 +15,7 @@
 #include <Core/Utils/LevelSetUtils.hpp>
 #include <Core/Utils/Macros.hpp>
 
+#include <cmath>
 #include <utility>
 
 namespace CubbyFlow
@@ -43,7 +44,7 @@ void VolumeGridEmitter2::AddStepFunctionTarget(
     auto mapper = [minValue, maxValue, smoothingWidth](
                       double sdf, const Vector2D&, double oldVal) {
         const double step = 1.0 - SmearedHeavisideSDF(sdf / smoothingWidth);
-        return std::max(oldVal, (maxValue - minValue) * step + minValue);
+        return std::max(oldVal, std::lerp(minValue, maxValue, step));
     };
 
     AddTarget(scalarGridTarget, mapper);
@@ -107,12 +108,13 @@ void VolumeGridEmitter2::Emit()
         const auto& mapper = std::get<1>(target);
 
         GridDataPositionFunc<2> pos = grid->DataPosition();
-        grid->ParallelForEachDataPointIndex([&](size_t i, size_t j) {
-            const Vector2D gx = pos(i, j);
-            const double sdf = GetSourceRegion()->SignedDistance(gx);
+        grid->ParallelForEachDataPointIndex(
+            [&pos, this, &grid, &mapper](size_t i, size_t j) {
+                const Vector2D gx = pos(i, j);
+                const double sdf = GetSourceRegion()->SignedDistance(gx);
 
-            (*grid)(i, j) = mapper(sdf, gx, (*grid)(i, j));
-        });
+                (*grid)(i, j) = mapper(sdf, gx, (*grid)(i, j));
+            });
     }
 
     for (const auto& target : m_customVectorTargets)
@@ -125,15 +127,17 @@ void VolumeGridEmitter2::Emit()
         if (collocated != nullptr)
         {
             GridDataPositionFunc<2> pos = collocated->DataPosition();
-            collocated->ParallelForEachDataPointIndex([&](size_t i, size_t j) {
-                const Vector2D gx = pos(i, j);
-                const double sdf = GetSourceRegion()->SignedDistance(gx);
+            collocated->ParallelForEachDataPointIndex(
+                [&pos, this, &collocated, &mapper](size_t i, size_t j) {
+                    const Vector2D gx = pos(i, j);
+                    const double sdf = GetSourceRegion()->SignedDistance(gx);
 
-                if (IsInsideSDF(sdf))
-                {
-                    (*collocated)(i, j) = mapper(sdf, gx, (*collocated)(i, j));
-                }
-            });
+                    if (IsInsideSDF(sdf))
+                    {
+                        (*collocated)(i, j) =
+                            mapper(sdf, gx, (*collocated)(i, j));
+                    }
+                });
 
             continue;
         }
@@ -145,23 +149,25 @@ void VolumeGridEmitter2::Emit()
             auto uPos = faceCentered->UPosition();
             auto vPos = faceCentered->VPosition();
 
-            faceCentered->ParallelForEachUIndex([&](const Vector2UZ& idx) {
-                const Vector2D gx = uPos(idx);
-                const double sdf = GetSourceRegion()->SignedDistance(gx);
-                const Vector2D oldVal = faceCentered->Sample(gx);
-                const Vector2D newVal = mapper(sdf, gx, oldVal);
+            faceCentered->ParallelForEachUIndex(
+                [&uPos, this, &faceCentered, &mapper](const Vector2UZ& idx) {
+                    const Vector2D gx = uPos(idx);
+                    const double sdf = GetSourceRegion()->SignedDistance(gx);
+                    const Vector2D oldVal = faceCentered->Sample(gx);
+                    const Vector2D newVal = mapper(sdf, gx, oldVal);
 
-                faceCentered->U(idx) = newVal.x;
-            });
+                    faceCentered->U(idx) = newVal.x;
+                });
 
-            faceCentered->ParallelForEachVIndex([&](const Vector2UZ& idx) {
-                const Vector2D gx = vPos(idx);
-                const double sdf = GetSourceRegion()->SignedDistance(gx);
-                const Vector2D oldVal = faceCentered->Sample(gx);
-                const Vector2D newVal = mapper(sdf, gx, oldVal);
+            faceCentered->ParallelForEachVIndex(
+                [&vPos, this, &faceCentered, &mapper](const Vector2UZ& idx) {
+                    const Vector2D gx = vPos(idx);
+                    const double sdf = GetSourceRegion()->SignedDistance(gx);
+                    const Vector2D oldVal = faceCentered->Sample(gx);
+                    const Vector2D newVal = mapper(sdf, gx, oldVal);
 
-                faceCentered->V(idx) = newVal.y;
-            });
+                    faceCentered->V(idx) = newVal.y;
+                });
         }
     }
 }
@@ -198,8 +204,6 @@ VolumeGridEmitter2 VolumeGridEmitter2::Builder::Build() const
 
 VolumeGridEmitter2Ptr VolumeGridEmitter2::Builder::MakeShared() const
 {
-    return std::shared_ptr<VolumeGridEmitter2>(
-        new VolumeGridEmitter2(m_sourceRegion, m_isOneShot),
-        [](VolumeGridEmitter2* obj) { delete obj; });
+    return std::make_shared<VolumeGridEmitter2>(m_sourceRegion, m_isOneShot);
 }
 }  // namespace CubbyFlow

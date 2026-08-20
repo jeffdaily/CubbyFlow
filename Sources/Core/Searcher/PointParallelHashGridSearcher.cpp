@@ -37,17 +37,7 @@ PointParallelHashGridSearcher<N>::PointParallelHashGridSearcher(
 
 template <size_t N>
 PointParallelHashGridSearcher<N>::PointParallelHashGridSearcher(
-    const PointParallelHashGridSearcher& other)
-    : m_gridSpacing(other.m_gridSpacing),
-      m_resolution(other.m_resolution),
-      m_points(other.m_points),
-      m_keys(other.m_keys),
-      m_startIndexTable(other.m_startIndexTable),
-      m_endIndexTable(other.m_endIndexTable),
-      m_sortedIndices(other.m_sortedIndices)
-{
-    // Do nothing
-}
+    const PointParallelHashGridSearcher& other) = default;
 
 template <size_t N>
 PointParallelHashGridSearcher<N>::PointParallelHashGridSearcher(
@@ -65,17 +55,7 @@ PointParallelHashGridSearcher<N>::PointParallelHashGridSearcher(
 
 template <size_t N>
 PointParallelHashGridSearcher<N>& PointParallelHashGridSearcher<N>::operator=(
-    const PointParallelHashGridSearcher& other)
-{
-    m_gridSpacing = other.m_gridSpacing;
-    m_resolution = other.m_resolution;
-    m_points = other.m_points;
-    m_keys = other.m_keys;
-    m_startIndexTable = other.m_startIndexTable;
-    m_endIndexTable = other.m_endIndexTable;
-    m_sortedIndices = other.m_sortedIndices;
-    return *this;
-}
+    const PointParallelHashGridSearcher& other) = default;
 
 template <size_t N>
 PointParallelHashGridSearcher<N>& PointParallelHashGridSearcher<N>::operator=(
@@ -125,12 +105,13 @@ void PointParallelHashGridSearcher<N>::Build(
     }
 
     // Initialize indices array and generate hash key for each point
-    ParallelFor(static_cast<size_t>(0), numberOfPoints, [&](size_t i) {
-        m_sortedIndices[i] = i;
-        m_points[i] = points[i];
-        tempKeys[i] = PointHashGridUtils<N>::GetHashKeyFromPosition(
-            points[i], m_gridSpacing, m_resolution);
-    });
+    ParallelFor(static_cast<size_t>(0), numberOfPoints,
+                [this, &points, &tempKeys](size_t i) {
+                    m_sortedIndices[i] = i;
+                    m_points[i] = points[i];
+                    tempKeys[i] = PointHashGridUtils<N>::GetHashKeyFromPosition(
+                        points[i], m_gridSpacing, m_resolution);
+                });
 
     // Sort indices based on hash key
     ParallelSort(m_sortedIndices.begin(), m_sortedIndices.end(),
@@ -139,10 +120,11 @@ void PointParallelHashGridSearcher<N>::Build(
                  });
 
     // Re-order point and key arrays
-    ParallelFor(static_cast<size_t>(0), numberOfPoints, [&](size_t i) {
-        m_points[i] = points[m_sortedIndices[i]];
-        m_keys[i] = tempKeys[m_sortedIndices[i]];
-    });
+    ParallelFor(static_cast<size_t>(0), numberOfPoints,
+                [this, &points, &tempKeys](size_t i) {
+                    m_points[i] = points[m_sortedIndices[i]];
+                    m_keys[i] = tempKeys[m_sortedIndices[i]];
+                });
 
     // Now m_points and m_keys are sorted by points' hash key values.
     // Let's fill in start/end index table with m_keys.
@@ -159,7 +141,7 @@ void PointParallelHashGridSearcher<N>::Build(
     m_startIndexTable[m_keys[0]] = 0;
     m_endIndexTable[m_keys[numberOfPoints - 1]] = numberOfPoints;
 
-    ParallelFor(static_cast<size_t>(1), numberOfPoints, [&](size_t i) {
+    ParallelFor(static_cast<size_t>(1), numberOfPoints, [this](size_t i) {
         if (m_keys[i] > m_keys[i - 1])
         {
             m_startIndexTable[m_keys[i]] = i;
@@ -306,9 +288,7 @@ template <size_t N>
 std::shared_ptr<PointNeighborSearcher<N>>
 PointParallelHashGridSearcher<N>::Clone() const
 {
-    return std::shared_ptr<PointParallelHashGridSearcher>(
-        new PointParallelHashGridSearcher{ *this },
-        [](PointParallelHashGridSearcher* obj) { delete obj; });
+    return std::make_shared<PointParallelHashGridSearcher>(*this);
 }
 
 template <size_t N>
@@ -347,7 +327,8 @@ PointParallelHashGridSearcher<N>::GetBuilder()
 
 template <size_t N>
 template <size_t M>
-std::enable_if_t<M == 2, void> PointParallelHashGridSearcher<N>::Serialize(
+CUBBYFLOW_REQUIRES(M == 2)
+void PointParallelHashGridSearcher<N>::Serialize(
     const PointParallelHashGridSearcher<2>& searcher,
     std::vector<uint8_t>* buffer)
 {
@@ -404,7 +385,8 @@ std::enable_if_t<M == 2, void> PointParallelHashGridSearcher<N>::Serialize(
 
 template <size_t N>
 template <size_t M>
-std::enable_if_t<M == 3, void> PointParallelHashGridSearcher<N>::Serialize(
+CUBBYFLOW_REQUIRES(M == 3)
+void PointParallelHashGridSearcher<N>::Serialize(
     const PointParallelHashGridSearcher<3>& searcher,
     std::vector<uint8_t>* buffer)
 {
@@ -462,7 +444,8 @@ std::enable_if_t<M == 3, void> PointParallelHashGridSearcher<N>::Serialize(
 
 template <size_t N>
 template <size_t M>
-std::enable_if_t<M == 2, void> PointParallelHashGridSearcher<N>::Deserialize(
+CUBBYFLOW_REQUIRES(M == 2)
+void PointParallelHashGridSearcher<N>::Deserialize(
     const std::vector<uint8_t>& buffer,
     PointParallelHashGridSearcher<2>& searcher)
 {
@@ -522,7 +505,8 @@ std::enable_if_t<M == 2, void> PointParallelHashGridSearcher<N>::Deserialize(
 
 template <size_t N>
 template <size_t M>
-std::enable_if_t<M == 3, void> PointParallelHashGridSearcher<N>::Deserialize(
+CUBBYFLOW_REQUIRES(M == 3)
+void PointParallelHashGridSearcher<N>::Deserialize(
     const std::vector<uint8_t>& buffer,
     PointParallelHashGridSearcher<3>& searcher)
 {
@@ -609,9 +593,8 @@ template <size_t N>
 std::shared_ptr<PointParallelHashGridSearcher<N>>
 PointParallelHashGridSearcher<N>::Builder::MakeShared() const
 {
-    return std::shared_ptr<PointParallelHashGridSearcher>(
-        new PointParallelHashGridSearcher{ m_resolution, m_gridSpacing },
-        [](PointParallelHashGridSearcher* obj) { delete obj; });
+    return std::make_shared<PointParallelHashGridSearcher>(m_resolution,
+                                                           m_gridSpacing);
 }
 
 template <size_t N>

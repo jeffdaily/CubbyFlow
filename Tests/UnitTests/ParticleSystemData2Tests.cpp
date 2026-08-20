@@ -38,6 +38,29 @@ TEST(ParticleSystemData2, Constructors)
     }
 }
 
+TEST(ParticleSystemData2, CopyAssignmentAndSet)
+{
+    ParticleSystemData2 source(2);
+    EXPECT_EQ(0u, source.AddScalarData());
+    EXPECT_EQ(3u, source.AddVectorData());
+
+    ParticleSystemData2 assigned(1);
+    EXPECT_EQ(0u, assigned.AddScalarData());
+    EXPECT_EQ(3u, assigned.AddVectorData());
+    assigned = source;
+
+    EXPECT_EQ(1u, assigned.AddScalarData());
+    EXPECT_EQ(4u, assigned.AddVectorData());
+
+    ParticleSystemData2 set(1);
+    EXPECT_EQ(0u, set.AddScalarData());
+    EXPECT_EQ(3u, set.AddVectorData());
+    set.Set(source);
+
+    EXPECT_EQ(1u, set.AddScalarData());
+    EXPECT_EQ(4u, set.AddVectorData());
+}
+
 TEST(ParticleSystemData2, Resize)
 {
     ParticleSystemData2 particleSystem;
@@ -158,7 +181,7 @@ TEST(ParticleSystemData2, BuildNeighborSearcher)
     std::vector<size_t> found;
     neighborSearcher->ForEachNearbyPoint(
         searchOrigin, radius,
-        [&](size_t i, const Vector2D&) { found.push_back(i); });
+        [&found](size_t i, const Vector2D&) { found.push_back(i); });
 
     for (size_t ii = 0; ii < positions.Length(); ++ii)
     {

@@ -39,33 +39,16 @@ Box<N>::Box(const BoundingBox<double, N>& boundingBox,
 }
 
 template <size_t N>
-Box<N>::Box(const Box& other) : Surface<N>{ other }, bound(other.bound)
-{
-    // Do nothing
-}
+Box<N>::Box(const Box& other) = default;
 
 template <size_t N>
-Box<N>::Box(Box&& other) noexcept
-    : Surface<N>{ std::move(other) }, bound(std::move(other.bound))
-{
-    // Do nothing
-}
+Box<N>::Box(Box&& other) noexcept = default;
 
 template <size_t N>
-Box<N>& Box<N>::operator=(const Box& other)
-{
-    bound = other.bound;
-    Surface<N>::operator=(other);
-    return *this;
-}
+Box<N>& Box<N>::operator=(const Box& other) = default;
 
 template <size_t N>
-Box<N>& Box<N>::operator=(Box&& other) noexcept
-{
-    bound = std::move(other.bound);
-    Surface<N>::operator=(std::move(other));
-    return *this;
-}
+Box<N>& Box<N>::operator=(Box&& other) noexcept = default;
 
 template <size_t N>
 Vector<double, N> Box<N>::ClosestPointLocal(
@@ -236,9 +219,8 @@ Box<N> Box<N>::Builder::Build() const
 template <size_t N>
 std::shared_ptr<Box<N>> Box<N>::Builder::MakeShared() const
 {
-    return std::shared_ptr<Box<N>>{ new Box<N>(m_lowerCorner, m_upperCorner,
-                                               m_transform, m_isNormalFlipped),
-                                    [](Box<N>* obj) { delete obj; } };
+    return std::make_shared<Box<N>>(m_lowerCorner, m_upperCorner, m_transform,
+                                    m_isNormalFlipped);
 }
 
 template class Box<2>;

@@ -45,6 +45,13 @@ TEST(SurfaceSet2, Constructors)
               std::dynamic_pointer_cast<Sphere2>(sset4.SurfaceAt(2))->radius);
     EXPECT_EQ(Vector2D(1, 2), sset4.transform.GetTranslation());
     EXPECT_EQ(0.5, sset4.transform.GetOrientation().GetRotation());
+
+    sset3.isNormalFlipped = true;
+    SurfaceSet2 sset5;
+    sset5 = sset3;
+    EXPECT_EQ(Vector2D(1, 2), sset5.transform.GetTranslation());
+    EXPECT_EQ(0.5, sset5.transform.GetOrientation().GetRotation());
+    EXPECT_TRUE(sset5.isNormalFlipped);
 }
 
 TEST(SurfaceSet2, AddSurface)
@@ -95,7 +102,7 @@ TEST(SurfaceSet2, ClosestPoint)
         sset1.AddSurface(sph);
     }
 
-    const auto bruteForceSearch = [&](const Vector2D& pt) {
+    const auto bruteForceSearch = [&numSamples, &sset1](const Vector2D& pt) {
         double minDist2 = std::numeric_limits<double>::max();
         Vector2D result;
 
@@ -162,7 +169,7 @@ TEST(SurfaceSet2, ClosestNormal)
         sset1.AddSurface(sph);
     }
 
-    const auto bruteForceSearch = [&](const Vector2D& pt) {
+    const auto bruteForceSearch = [&numSamples, &sset1](const Vector2D& pt) {
         double minDist2 = std::numeric_limits<double>::max();
         Vector2D result;
 
@@ -225,7 +232,7 @@ TEST(SurfaceSet2, ClosestDistance)
         sset1.AddSurface(sph);
     }
 
-    const auto bruteForceSearch = [&](const Vector2D& pt) {
+    const auto bruteForceSearch = [&numSamples, &sset1](const Vector2D& pt) {
         double minDist = std::numeric_limits<double>::max();
 
         for (size_t i = 0; i < numSamples / 2; ++i)
@@ -283,7 +290,7 @@ TEST(SurfaceSet2, Intersects)
         sset1.AddSurface(sph);
     }
 
-    const auto bruteForceTest = [&](const Ray2D& ray) {
+    const auto bruteForceTest = [&numSamples, &sset1](const Ray2D& ray) {
         for (size_t i = 0; i < numSamples / 2; ++i)
         {
             if (sset1.SurfaceAt(i)->Intersects(ray))
@@ -340,7 +347,7 @@ TEST(SurfaceSet2, ClosestIntersection)
         sset1.AddSurface(sph);
     }
 
-    const auto bruteForceTest = [&](const Ray2D& ray) {
+    const auto bruteForceTest = [&numSamples, &sset1](const Ray2D& ray) {
         SurfaceRayIntersection2 result{};
 
         for (size_t i = 0; i < numSamples / 2; ++i)

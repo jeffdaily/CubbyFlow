@@ -10,6 +10,7 @@
 
 #include <Core/Geometry/SurfaceSet.hpp>
 
+#include <algorithm>
 #include <limits>
 
 namespace CubbyFlow
@@ -52,6 +53,7 @@ SurfaceSet<N>::SurfaceSet(SurfaceSet&& other) noexcept
 template <size_t N>
 SurfaceSet<N>& SurfaceSet<N>::operator=(const SurfaceSet& other)
 {
+    Surface<N>::operator=(other);
     m_surfaces = other.m_surfaces;
     m_unboundedSurfaces = other.m_unboundedSurfaces;
 
@@ -63,6 +65,7 @@ SurfaceSet<N>& SurfaceSet<N>::operator=(const SurfaceSet& other)
 template <size_t N>
 SurfaceSet<N>& SurfaceSet<N>::operator=(SurfaceSet&& other) noexcept
 {
+    Surface<N>::operator=(std::move(other));
     m_surfaces = std::move(other.m_surfaces);
     m_unboundedSurfaces = std::move(other.m_unboundedSurfaces);
 
@@ -302,10 +305,9 @@ double SurfaceSet<N>::ClosestDistanceLocal(
 template <size_t N>
 bool SurfaceSet<N>::IsInsideLocal(const Vector<double, N>& otherPoint) const
 {
-    return std::any_of(m_surfaces.begin(), m_surfaces.end(),
-                       [&](const std::shared_ptr<Surface<N>> surface) {
-                           return surface->IsInside(otherPoint);
-                       });
+    return std::ranges::any_of(m_surfaces, [&otherPoint](const auto& surface) {
+        return surface->IsInside(otherPoint);
+    });
 }
 
 template <size_t N>
@@ -359,9 +361,8 @@ SurfaceSet<N> SurfaceSet<N>::Builder::Build() const
 template <size_t N>
 std::shared_ptr<SurfaceSet<N>> SurfaceSet<N>::Builder::MakeShared() const
 {
-    return std::shared_ptr<SurfaceSet>{ new SurfaceSet(m_surfaces, m_transform,
-                                                       m_isNormalFlipped),
-                                        [](SurfaceSet* obj) { delete obj; } };
+    return std::make_shared<SurfaceSet>(m_surfaces, m_transform,
+                                        m_isNormalFlipped);
 }
 
 template class SurfaceSet<2>;

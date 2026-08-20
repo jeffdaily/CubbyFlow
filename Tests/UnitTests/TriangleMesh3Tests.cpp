@@ -12,6 +12,14 @@ TEST(TriangleMesh3, Constructors)
     EXPECT_EQ(0u, mesh1.NumberOfNormals());
     EXPECT_EQ(0u, mesh1.NumberOfUVs());
     EXPECT_EQ(0u, mesh1.NumberOfTriangles());
+
+    TriangleMesh3 mesh2(
+        Transform3(Vector3D(1, 2, 3), QuaternionD({ 1, 0, 0 }, 0.5)), true);
+    mesh1 = mesh2;
+    EXPECT_EQ(Vector3D(1, 2, 3), mesh1.transform.GetTranslation());
+    EXPECT_EQ(QuaternionD({ 1, 0, 0 }, 0.5),
+              mesh1.transform.GetOrientation().GetRotation());
+    EXPECT_TRUE(mesh1.isNormalFlipped);
 }
 
 TEST(TriangleMesh3, ReadObj)
@@ -36,7 +44,7 @@ TEST(TriangleMesh3, ClosestPoint)
     TriangleMesh3 mesh;
     [[maybe_unused]] bool isLoaded = mesh.ReadObj(&objStream);
 
-    const auto bruteForceSearch = [&](const Vector3D& pt) {
+    const auto bruteForceSearch = [&mesh](const Vector3D& pt) {
         double minDist2 = std::numeric_limits<double>::max();
         Vector3D result;
 
@@ -73,7 +81,7 @@ TEST(TriangleMesh3, ClosestNormal)
     TriangleMesh3 mesh;
     [[maybe_unused]] bool isLoaded = mesh.ReadObj(&objStream);
 
-    const auto bruteForceSearch = [&](const Vector3D& pt) {
+    const auto bruteForceSearch = [&mesh](const Vector3D& pt) {
         double minDist2 = std::numeric_limits<double>::max();
         Vector3D result;
 
@@ -111,7 +119,7 @@ TEST(TriangleMesh3, ClosestDistance)
     TriangleMesh3 mesh;
     [[maybe_unused]] bool isLoaded = mesh.ReadObj(&objStream);
 
-    const auto bruteForceSearch = [&](const Vector3D& pt) {
+    const auto bruteForceSearch = [&mesh](const Vector3D& pt) {
         double minDist = std::numeric_limits<double>::max();
 
         for (size_t i = 0; i < mesh.NumberOfTriangles(); ++i)
@@ -147,7 +155,7 @@ TEST(TriangleMesh3, Intersects)
 
     size_t numSamples = GetNumberOfSamplePoints3();
 
-    const auto bruteForceTest = [&](const Ray3D& ray) {
+    const auto bruteForceTest = [&mesh](const Ray3D& ray) {
         for (size_t i = 0; i < mesh.NumberOfTriangles(); ++i)
         {
             Triangle3 tri = mesh.Triangle(i);
@@ -179,7 +187,7 @@ TEST(TriangleMesh3, ClosestIntersection)
 
     size_t numSamples = GetNumberOfSamplePoints3();
 
-    const auto bruteForceTest = [&](const Ray3D& ray) {
+    const auto bruteForceTest = [&mesh](const Ray3D& ray) {
         SurfaceRayIntersection3 result{};
 
         for (size_t i = 0; i < mesh.NumberOfTriangles(); ++i)

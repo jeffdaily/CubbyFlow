@@ -101,11 +101,13 @@ CUBBYFLOW_BEGIN_TEST_F(APICSolver2, Rotation)
             {
                 Vector2D rp = x[i] - Vector2D(0.5, 0.5);
 
-                if (rp.LengthSquared() > 0.0)
+                if (rp.LengthSquared() <= 0.0)
                 {
-                    double scale = r[i] / rp.Length();
-                    x[i] = scale * rp + Vector2D(0.5, 0.5);
+                    continue;
                 }
+
+                double scale = r[i] / rp.Length();
+                x[i] = scale * rp + Vector2D(0.5, 0.5);
             }
         }
 
@@ -305,7 +307,7 @@ CUBBYFLOW_BEGIN_TEST_F(APICSolver2, Circular)
     std::mt19937 rng;
     std::uniform_real_distribution<> dist(0, 1);
 
-    for (int i = 0; i < 4 * resX * resX; ++i)
+    for (size_t i = 0; i < 4 * resX * resX; ++i)
     {
         Vector2D pt{ dist(rng), dist(rng) };
 
@@ -352,7 +354,7 @@ CUBBYFLOW_BEGIN_TEST_F(APICSolver2, CircularWithFriction)
     std::mt19937 rng;
     std::uniform_real_distribution<> dist(0, 1);
 
-    for (int i = 0; i < 4 * resX * resX; ++i)
+    for (size_t i = 0; i < 4 * resX * resX; ++i)
     {
         Vector2D pt{ dist(rng), dist(rng) };
 

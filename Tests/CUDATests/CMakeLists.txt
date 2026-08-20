@@ -36,6 +36,7 @@ target_compile_options(${target}
 )
 target_compile_definitions(${target}
     PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:DOCTEST_CONFIG_USE_STD_HEADERS>
     RESOURCES_DIR="${RESOURCES_DIR}"
 )
 
@@ -43,4 +44,5 @@ target_compile_definitions(${target}
 target_link_libraries(${target}
     PRIVATE
     ${DEFAULT_LINKER_OPTIONS}
-    CubbyFlow)
+    CubbyFlow
+    doctest::doctest)
